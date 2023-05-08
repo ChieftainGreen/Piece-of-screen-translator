@@ -9,8 +9,10 @@ Not expected for non-windows because ctypes is used for DPI correction
  """
 
 # TODO:
-# status bar for errors (like 5000 symbols)
-# correct work with empty
+# status bar for errors (like 5000 symbols) - DONE
+# format source text - delete unnecessary line breaks, leave only paragraphs - DONE
+# translator menu choice
+# correct work with empty pastebin.txt file - DONE
 # one approach - global vars or pass/take from func
 # backend func file
 # fill requirements.txt
@@ -23,10 +25,10 @@ import pyscreenshot as ImageGrab
 import pytesseract
 from deep_translator import (GoogleTranslator,
 #                             MicrosoftTranslator,  #maybe later menu choice and selection
-#                             PonsTranslator,
-#                             LingueeTranslator,
+                             PonsTranslator,
+                             LingueeTranslator,
 #                             MyMemoryTranslator,
-#                             YandexTranslator,
+                             YandexTranslator,
 #                             PapagoTranslator,
 #                             DeeplTranslator,
 #                             QcriTranslator,
@@ -51,8 +53,8 @@ err5000 = ' NO GO, too long'  # error from Google API if translating > 5k charac
 mywindowgeometry = None
 # mywindowgeometry = '700x1440+2500+0' # based on my desktop. Comment if not necessary
 current_text = 0
-text_array = []
-position = -1
+text_array = ['Press "Scan Zone" to start']
+position = 0
 
 
 def get_mouse_posn(event):
@@ -91,8 +93,10 @@ def add_text_to_file(translated):
 
 def read_text_from_file():
     """returns list of strings, taken from the file where strings are separated by DELIMITER"""
+    global text_array
     file = open("pastebin.txt", "r")
     text_full_string = file.read()
+    #print(text_full_string)
     file.close()
     text_array = text_full_string.split(DELIMITER)
     text_array.pop()  # remove last element, because it's an empty string.
@@ -102,25 +106,34 @@ def read_text_from_file():
 
 def refresh_pad():
     global text_array
-    text_array = read_text_from_file()
+    #text_array = read_text_from_file()
+    print(text_array[position], position)
     textEditor.configure(state=tk.NORMAL)
     textEditor.delete('1.0', tk.END)
     textEditor.insert(tk.INSERT, (str(position) + "\n"))
     textEditor.insert(tk.INSERT, text_array[position])
-    textEditor.grid(row=2, column=0, columnspan=4, ipadx=10, ipady=10, sticky=tk.NSEW)
+    textEditor.grid(row=2, column=0, columnspan=5, ipadx=10, ipady=10, sticky=tk.NSEW)
     mygui.grid_rowconfigure(2, weight=50)
+    mygui.grid_columnconfigure(5,weight=20)
     textEditor.configure(state=tk.DISABLED)
 
 
 def print_prev():
-    global position
-    position = position-1
+    global position, text_array
+    print(position)
+    position = position - 1
+    if position < 0:
+        position = len(text_array) - 1
+    #position = position-1
     refresh_pad()
 
 
 def print_next():
-    global position
-    position = position+1
+    global position, text_array
+    print(position)
+    position = position + 1
+    if position >= len(text_array):
+        position = 0
     refresh_pad()
 
 
@@ -141,6 +154,7 @@ def select_zone():
 
 def screen_zone():
     """takes screenshot, returns picture (ImageGrab) or an error"""
+    global status_line, text_array, position
     dimensions = (topx, topy, botx, boty)
     tdimensions = tuple(map(int, dimensions))
     try:
@@ -149,14 +163,24 @@ def screen_zone():
             image = ImageGrab.grab(bbox=tdimensions)
             # print(type(image),len(image)) # imange has no length! such string will cause except
             eng_string=pytesseract.image_to_string(image, lang='eng')
+            eng_string=eng_string.replace('\n\n', 'DOUBLECARR555')
+            eng_string=eng_string.replace('\n', '')
+            eng_string=eng_string.replace('DOUBLECARR555', '\n\n')
             if len(eng_string)>=5000:
                 print(len(eng_string), err5000)
+                status_line.configure(text = err5000)
+                status_line.grid(row=0, columnspan=5, sticky=tk.NSEW)
                 # translated = None
                 # TODO - split large chunks to <5k symbols pieces for translation
             else:
+                status_line.configure(text = '')
+                status_line.grid(row=0, columnspan=5, sticky=tk.NSEW)
                 translated = GoogleTranslator(source=LANG_SOURCE, target=LANG_DEST).translate(text=eng_string)
-                print(translated)
-                add_text_to_file(translated)
+                #translated = PonsTranslator(source=LANG_SOURCE, target=LANG_DEST).translate(text=eng_string)
+                print(repr(translated))
+                text_array.append(translated)
+                position=position+1
+                #add_text_to_file(translated)
                 refresh_pad()
         else:
             print("no dimensions")
@@ -168,7 +192,7 @@ def screen_zone():
 
 mygui = tk.Tk()
 mygui.configure(background='lightgreen', )
-if 'mywindowgeometry' is not None:
+if 'mywindowgeometry' != None:
     mygui.geometry(mywindowgeometry)
 else:
     pass
@@ -180,20 +204,24 @@ style.configure("TButton", background ="orange", foreground ="black")
 mygui.title("Piece of screen translater")
 mygui.resizable(True,True)
 
+status_line = ttk.Label(mygui)
+status_line.grid(row=0, columnspan=5, sticky=tk.NSEW)
+
 crop_button = ttk.Button(mygui, text="Select\narea", command=select_zone, style="TButton")
                         #padx=10, width=7, height=4)
 re_button = ttk.Button(mygui, text="Re-capture", command=screen_zone, style="TButton")
                         #padx=10, width=7, height=4)
+save_button = ttk.Button(mygui, text="add to pastebin.txt",
+                         command=add_text_to_file, style="TButton")
 prev_button = ttk.Button(mygui, text="Previous", command=print_prev, style="TButton")#,
                         #padx=10, width=7, height=4)
 next_button = ttk.Button(mygui, text="Next", command=print_next, style="TButton")#,
                         #padx=10, width=7, height=4)
-status_line = ttk.Label(mygui)
-status_line.grid(row=0, columnspan=4, sticky=tk.NSEW)
 crop_button.grid(row=1, column=0, ipadx=10, ipady=10, sticky=tk.NSEW)
 re_button.grid(row=1, column=1, ipadx=10, ipady=20, sticky=tk.NSEW)
-prev_button.grid(row=1, column=2, ipadx=10, ipady=20, sticky=tk.NSEW)
-next_button.grid(row=1, column=3, ipadx=10, ipady=20, sticky=tk.NSEW)
+save_button.grid(row=1, column=2, ipadx=10, ipady=20, sticky=tk.NSEW)
+prev_button.grid(row=1, column=3, ipadx=10, ipady=20, sticky=tk.NSEW)
+next_button.grid(row=1, column=4, ipadx=10, ipady=20, sticky=tk.NSEW)
 
 textEditor = scrolledtext.ScrolledText(mygui, font=("Nirmala UI", 11), wrap=tk.WORD,
                      fg="LightSteelBlue1", bg="grey17")
