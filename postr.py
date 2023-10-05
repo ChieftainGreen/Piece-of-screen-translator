@@ -5,10 +5,11 @@ Education project. GUI utility that makes
 3)Translation
 4)display translated text, with history of previous texts
 defaults are set for my display
-Not expected for non-windows because ctypes is used for DPI correction
+Not expected to work on non-windows because ctypes is used for DPI correction
  """
 
 # TODO:
+#proper stretring - https://stackoverflow.com/questions/7591294/how-to-create-a-self-resizing-grid-of-buttons-in-tkinter
 # status bar for errors (like 5000 symbols) - DONE
 # format source text - delete unnecessary line breaks, leave only paragraphs - DONE
 # translator menu choice
@@ -17,6 +18,10 @@ Not expected for non-windows because ctypes is used for DPI correction
 # backend func file
 # fill requirements.txt
 # clean PEP8
+# rounded buttons - seems to need custom class for them
+# f.e. https://stackoverflow.com/questions/42579927/how-to-make-a-rounded-button-tkinter
+#
+
 
 import tkinter as tk
 from tkinter import ttk
@@ -30,7 +35,7 @@ from deep_translator import (GoogleTranslator,
 #                             MyMemoryTranslator,
                              YandexTranslator,
 #                             PapagoTranslator,
-#                             DeeplTranslator,
+#                             DeeplTranslator, !!!!!!!!!!!!!!!!!
 #                             QcriTranslator,
 #                             single_detection,
 #                             batch_detection
@@ -114,7 +119,7 @@ def refresh_pad():
     textEditor.insert(tk.INSERT, text_array[position])
     textEditor.grid(row=2, column=0, columnspan=5, ipadx=10, ipady=10, sticky=tk.NSEW)
     mygui.grid_rowconfigure(2, weight=50)
-    mygui.grid_columnconfigure(5,weight=20)
+    #mygui.grid_columnconfigure(5,weight=20) #caused not full strech on resize
     textEditor.configure(state=tk.DISABLED)
 
 
@@ -144,7 +149,7 @@ def select_zone():
     troot.attributes('-fullscreen', True)
     troot.wm_attributes('-alpha', 0.3)
     troot.geometry(str(mygui.winfo_screenwidth()) + 'x' + str(mygui.winfo_screenheight()) + '+0+0')
-    tcanvas = tk.Canvas(troot, bg="lightgreen")
+    tcanvas = tk.Canvas(troot, bg="lightblue")
     tcanvas.pack(fill=tk.BOTH, expand=True)
     troot.bind('<Button-1>', get_mouse_posn)
     troot.bind('<B1-Motion>', update_sel_rect)
@@ -213,7 +218,9 @@ re_button = ttk.Button(mygui, text="Re-capture", command=screen_zone, style="TBu
                         #padx=10, width=7, height=4)
 save_button = ttk.Button(mygui, text="add to pastebin.txt",
                          command=add_text_to_file, style="TButton")
+#save_button.configure(borderwidth="2")
 prev_button = ttk.Button(mygui, text="Previous", command=print_prev, style="TButton")#,
+
                         #padx=10, width=7, height=4)
 next_button = ttk.Button(mygui, text="Next", command=print_next, style="TButton")#,
                         #padx=10, width=7, height=4)
@@ -225,6 +232,13 @@ next_button.grid(row=1, column=4, ipadx=10, ipady=20, sticky=tk.NSEW)
 
 textEditor = scrolledtext.ScrolledText(mygui, font=("Nirmala UI", 11), wrap=tk.WORD,
                      fg="LightSteelBlue1", bg="grey17")
+
+mygui.grid_columnconfigure(0, weight=1)
+mygui.grid_columnconfigure(1, weight=1)
+mygui.grid_columnconfigure(2, weight=1)
+mygui.grid_columnconfigure(3, weight=1)
+mygui.grid_columnconfigure(4, weight=1)
+
 
 refresh_pad()
 
